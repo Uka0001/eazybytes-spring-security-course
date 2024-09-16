@@ -1,7 +1,7 @@
 package com.cryptos.springsecsection11.controller;
 
-import com.eazybytes.model.Accounts;
-import com.eazybytes.repository.AccountsRepository;
+import com.cryptos.springsecsection11.model.Accounts;
+import com.cryptos.springsecsection11.repository.AccountsRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;

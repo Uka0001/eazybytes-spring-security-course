@@ -1,7 +1,7 @@
 package com.cryptos.springsecsection11.config;
 
-import com.eazybytes.model.Customer;
-import com.eazybytes.repository.CustomerRepository;
+import com.cryptos.springsecsection11.model.Customer;
+import com.cryptos.springsecsection11.repository.CustomerRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;

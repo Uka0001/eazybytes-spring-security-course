@@ -1,9 +1,8 @@
 package com.cryptos.springsecsection11.controller;
 
-import com.eazybytes.model.Cards;
-import com.eazybytes.repository.CardsRepository;
+import com.cryptos.springsecsection11.model.Cards;
+import com.cryptos.springsecsection11.repository.CardsRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -18,12 +17,6 @@ public class CardsController {
 
     @GetMapping("/myCards")
     public List<Cards> getCardDetails(@RequestParam long id) {
-        List<Cards> cards = cardsRepository.findByCustomerId(id);
-        if (cards != null ) {
-            return cards;
-        }else {
-            return null;
-        }
+        return cardsRepository.findByCustomerId(id);
     }
-
 }

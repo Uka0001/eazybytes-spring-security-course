@@ -1,15 +1,15 @@
 package com.cryptos.springsecsection11.repository;
 
-import java.util.List;
-
+import com.cryptos.springsecsection11.model.Loans;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.stereotype.Repository;
 
-import com.eazybytes.model.Loans;
+import java.util.List;
+
 
 @Repository
 public interface LoanRepository extends CrudRepository<Loans, Long> {
-	
-	List<Loans> findByCustomerIdOrderByStartDtDesc(long customerId);
+
+    List<Loans> findByCustomerIdOrderByStartDtDesc(long customerId);
 
 }

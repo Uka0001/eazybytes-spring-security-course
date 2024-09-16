@@ -2,11 +2,9 @@ package com.cryptos.springsecsection11.repository;
 
 import java.util.List;
 
-import com.eazybytes.model.Loans;
+import com.cryptos.springsecsection11.model.Cards;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.stereotype.Repository;
-
-import com.eazybytes.model.Cards;
 
 @Repository
 public interface CardsRepository extends CrudRepository<Cards, Long> {

@@ -1,7 +1,7 @@
 package com.cryptos.springsecsection11.controller;
 
-import com.eazybytes.model.Contact;
-import com.eazybytes.repository.ContactRepository;
+import com.cryptos.springsecsection11.model.Contact;
+import com.cryptos.springsecsection11.repository.ContactRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -13,7 +13,7 @@ import java.util.Random;
 @RestController
 @RequiredArgsConstructor
 public class ContactController {
-
+    private final Random random = new Random();
     private final ContactRepository contactRepository;
 
     @PostMapping("/contact")
@@ -24,7 +24,6 @@ public class ContactController {
     }
 
     public String getServiceReqNumber() {
-        Random random = new Random();
         int ranNum = random.nextInt(999999999 - 9999) + 9999;
         return "SR" + ranNum;
     }

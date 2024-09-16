@@ -29,7 +29,7 @@ public class RequestValidationBeforeFilter implements Filter {
         HttpServletRequest req = (HttpServletRequest) request;
         HttpServletResponse res = (HttpServletResponse) response;
         String header = req.getHeader(HttpHeaders.AUTHORIZATION);
-        if(null != header) {
+        if(header != null) {
             header = header.trim();
             if(StringUtils.startsWithIgnoreCase(header, "Basic ")) {
                 byte[] base64Token = header.substring(6).getBytes(StandardCharsets.UTF_8);

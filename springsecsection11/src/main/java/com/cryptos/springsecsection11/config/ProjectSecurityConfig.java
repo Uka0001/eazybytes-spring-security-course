@@ -5,13 +5,18 @@ import com.cryptos.springsecsection11.exceptionhandling.CustomBasicAuthenticatio
 import com.cryptos.springsecsection11.filter.AuthoritiesLoggingAfterFilter;
 import com.cryptos.springsecsection11.filter.AuthoritiesLoggingAtFilter;
 import com.cryptos.springsecsection11.filter.CsrfCookieFilter;
+import com.cryptos.springsecsection11.filter.JWTTokenGeneratorFilter;
+import com.cryptos.springsecsection11.filter.JWTTokenValidatorFilter;
 import com.cryptos.springsecsection11.filter.RequestValidationBeforeFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.password.CompromisedPasswordChecker;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -33,7 +38,7 @@ public class ProjectSecurityConfig {
     @Bean
     SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
         CsrfTokenRequestAttributeHandler csrfTokenRequestAttributeHandler = new CsrfTokenRequestAttributeHandler();
-        http.securityContext(contextConfig -> contextConfig.requireExplicitSave(false))
+        http
                 .sessionManagement(sessionConfig -> sessionConfig.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .cors(corsConfig -> corsConfig.configurationSource(request -> {
                     CorsConfiguration config = new CorsConfiguration();
@@ -46,12 +51,14 @@ public class ProjectSecurityConfig {
                     return config;
                 }))
                 .csrf(csrfConfig -> csrfConfig.csrfTokenRequestHandler(csrfTokenRequestAttributeHandler)
-                        .ignoringRequestMatchers("/contact", "/register")
+                        .ignoringRequestMatchers("/contact", "/register", "/apiLogin")
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()))
                 .addFilterAfter(new CsrfCookieFilter(), BasicAuthenticationFilter.class)
                 .addFilterBefore(new RequestValidationBeforeFilter(), BasicAuthenticationFilter.class)
                 .addFilterAfter(new AuthoritiesLoggingAfterFilter(), BasicAuthenticationFilter.class)
                 .addFilterAt(new AuthoritiesLoggingAtFilter(), BasicAuthenticationFilter.class)
+                .addFilterAfter(new JWTTokenGeneratorFilter(), BasicAuthenticationFilter.class)
+                .addFilterBefore(new JWTTokenValidatorFilter(), BasicAuthenticationFilter.class)
                 .requiresChannel(rcc -> rcc.anyRequest().requiresInsecure()) // Only HTTP
                 .authorizeHttpRequests(requests -> requests
                         .requestMatchers("/myAccount").hasRole("USER")
@@ -59,7 +66,13 @@ public class ProjectSecurityConfig {
                         .requestMatchers("/myLoans").hasRole("USER")
                         .requestMatchers("/myCards").hasRole("USER")
                         .requestMatchers("/user").authenticated()
-                        .requestMatchers("/notices", "/contact", "/error", "/register", "/invalidSession").permitAll());
+                        .requestMatchers(
+                                "/notices",
+                                "/contact",
+                                "/error",
+                                "/register",
+                                "/invalidSession",
+                                "/apiLogin").permitAll());
         http.formLogin(withDefaults());
         http.httpBasic(hbc -> hbc.authenticationEntryPoint(new CustomBasicAuthenticationEntryPoint()));
         http.exceptionHandling(ehc -> ehc.accessDeniedHandler(new CustomAccessDeniedHandler()));
@@ -79,4 +92,13 @@ public class ProjectSecurityConfig {
         return new HaveIBeenPwnedRestApiPasswordChecker();
     }
 
+    @Bean
+    public AuthenticationManager authenticationManager(UserDetailsService userDetailsService,
+                                                       PasswordEncoder passwordEncoder) {
+        EazyBankUsernamePwdAuthenticationProvider provider =
+                new EazyBankUsernamePwdAuthenticationProvider(userDetailsService, passwordEncoder);
+        ProviderManager providerManager = new ProviderManager(provider);
+        providerManager.setEraseCredentialsAfterAuthentication(false);
+        return providerManager;
+    }
 }

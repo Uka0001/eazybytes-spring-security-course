@@ -1,6 +1,6 @@
 package com.cryptos.springsecsection11.repository;
 
-import com.eazybytes.model.Accounts;
+import com.cryptos.springsecsection11.model.Accounts;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.stereotype.Repository;
 

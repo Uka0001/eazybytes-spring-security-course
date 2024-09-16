@@ -1,7 +1,7 @@
 package com.cryptos.springsecsection11.controller;
 
-import com.eazybytes.model.Loans;
-import com.eazybytes.repository.LoanRepository;
+import com.cryptos.springsecsection11.model.Loans;
+import com.cryptos.springsecsection11.repository.LoanRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;

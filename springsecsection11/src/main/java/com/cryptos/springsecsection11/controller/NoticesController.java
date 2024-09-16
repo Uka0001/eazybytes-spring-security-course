@@ -1,7 +1,7 @@
 package com.cryptos.springsecsection11.controller;
 
-import com.eazybytes.model.Notice;
-import com.eazybytes.repository.NoticeRepository;
+import com.cryptos.springsecsection11.model.Notice;
+import com.cryptos.springsecsection11.repository.NoticeRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
