@@ -13,6 +13,7 @@ import org.springframework.security.authentication.password.CompromisedPasswordC
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
@@ -41,13 +42,16 @@ import java.security.KeyPairGenerator;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.time.Duration;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Configuration
 @EnableWebSecurity
 public class ProjectSecurityConfig {
+
     @Bean
     @Order(1)
     public SecurityFilterChain authorizationServerSecurityFilterChain(HttpSecurity http)
@@ -64,6 +68,7 @@ public class ProjectSecurityConfig {
                                 new MediaTypeRequestMatcher(MediaType.TEXT_HTML)
                         )
                 )
+                .csrf(csrf -> csrf.ignoringRequestMatchers("/oauth2/jwks"))
                 // Accept access tokens for User Info and/or Client Registration
                 .oauth2ResourceServer((resourceServer) -> resourceServer
                         .jwt(Customizer.withDefaults()));
@@ -88,51 +93,50 @@ public class ProjectSecurityConfig {
 
     @Bean
     public RegisteredClientRepository registeredClientRepository() {
-        RegisteredClient authCodeClient = RegisteredClient.withId(UUID.randomUUID().toString())
+        RegisteredClient clientCredClient = RegisteredClient.withId(UUID.randomUUID().toString())
                 .clientId("cryptosapi")
-                .clientSecret("{noop}secret")
+                .clientSecret("{noop}secret1")
+                .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
+                .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
+                .scopes(scopeConfig -> scopeConfig.addAll(List.of(OidcScopes.OPENID, "ADMIN", "USER")))
+                .tokenSettings(TokenSettings.builder().accessTokenTimeToLive(Duration.ofMinutes(10))
+                        .accessTokenFormat(OAuth2TokenFormat.SELF_CONTAINED).build()).build();
+
+        RegisteredClient introspectClient = RegisteredClient.withId(UUID.randomUUID().toString())
+                .clientId("cryptosintrospect")
+                .clientSecret("{noop}secret2")
+                .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
+                .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
+                .scopes(scopeConfig -> scopeConfig.add(OidcScopes.OPENID))
+                .tokenSettings(TokenSettings.builder().accessTokenTimeToLive(Duration.ofMinutes(10))
+                        .accessTokenFormat(OAuth2TokenFormat.REFERENCE).build()).build();
+
+        RegisteredClient authCodeClient = RegisteredClient.withId(UUID.randomUUID().toString())
+                .clientId("cryptosclient")
+                .clientSecret("{noop}secret3")
                 .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_POST)
+                .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
                 .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
                 .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
                 .redirectUri("https://oauth.pstmn.io/v1/callback")
                 .scope(OidcScopes.OPENID).scope(OidcScopes.EMAIL)
-                .tokenSettings(TokenSettings.builder()
-                        .accessTokenTimeToLive(Duration.ofMinutes(10))
-                        .refreshTokenTimeToLive(Duration.ofHours(8))
-                        .reuseRefreshTokens(false)
-                        .accessTokenFormat(OAuth2TokenFormat.SELF_CONTAINED)
-                        .build())
-                .build();
+                .tokenSettings(TokenSettings.builder().accessTokenTimeToLive(Duration.ofMinutes(10))
+                        .refreshTokenTimeToLive(Duration.ofHours(8)).reuseRefreshTokens(false)
+                        .accessTokenFormat(OAuth2TokenFormat.SELF_CONTAINED).build()).build();
 
         RegisteredClient pkceClient = RegisteredClient.withId(UUID.randomUUID().toString())
-                .clientId("cryptosapi")
-                .clientSecret("{noop}secret")
+                .clientId("cryptospublicclient")
                 .clientAuthenticationMethod(ClientAuthenticationMethod.NONE)
+                .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
                 .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
                 .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
                 .redirectUri("https://oauth.pstmn.io/v1/callback")
                 .scope(OidcScopes.OPENID).scope(OidcScopes.EMAIL)
                 .clientSettings(ClientSettings.builder().requireProofKey(true).build())
-                .tokenSettings(TokenSettings.builder()
-                        .accessTokenTimeToLive(Duration.ofMinutes(10))
-                        .refreshTokenTimeToLive(Duration.ofHours(8))
-                        .reuseRefreshTokens(false)
-                        .accessTokenFormat(OAuth2TokenFormat.SELF_CONTAINED)
-                        .build())
-                .build();
-
-        RegisteredClient registeredClient = RegisteredClient.withId(UUID.randomUUID().toString())
-                .clientId("cryptosapi")
-                .clientSecret("{noop}secret")
-                .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
-                .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
-                .scopes(scopes -> scopes.addAll(List.of(OidcScopes.OPENID, "ADMIN", "USER")))
-                .tokenSettings(TokenSettings.builder()
-                        .accessTokenTimeToLive(Duration.ofMinutes(10))
-                        .accessTokenFormat(OAuth2TokenFormat.SELF_CONTAINED)
-                        .build())
-                .build();
-        return new InMemoryRegisteredClientRepository(registeredClient, authCodeClient, pkceClient);
+                .tokenSettings(TokenSettings.builder().accessTokenTimeToLive(Duration.ofMinutes(10))
+                        .refreshTokenTimeToLive(Duration.ofHours(8)).reuseRefreshTokens(false)
+                        .accessTokenFormat(OAuth2TokenFormat.SELF_CONTAINED).build()).build();
+        return new InMemoryRegisteredClientRepository(clientCredClient, introspectClient, authCodeClient, pkceClient);
     }
 
     @Bean
@@ -175,15 +179,23 @@ public class ProjectSecurityConfig {
         return context -> {
             if (context.getTokenType().equals(OAuth2TokenType.ACCESS_TOKEN)) {
                 context.getClaims().claims(claims -> {
-                    Set<String> roles = context.getClaims().build().getClaim("scope");
-                    claims.put("roles", roles);
+                    if (context.getAuthorizationGrantType().equals(AuthorizationGrantType.CLIENT_CREDENTIALS)) {
+                        Set<String> roles = context.getClaims().build().getClaim("scope");
+                        claims.put("roles", roles);
+                    } else if (context.getAuthorizationGrantType().equals(AuthorizationGrantType.AUTHORIZATION_CODE)) {
+                        Set<String> roles = AuthorityUtils.authorityListToSet(context.getPrincipal().getAuthorities())
+                                .stream()
+                                .map(authority -> authority.replace("ROLE_", ""))
+                                .collect(Collectors.collectingAndThen(Collectors.toSet(), Collections::unmodifiableSet));
+                        claims.put("roles", roles);
+                    }
                 });
             }
         };
     }
 
     @Bean
-    public PasswordEncoder passwordEncoder(){
+    public PasswordEncoder passwordEncoder() {
         return PasswordEncoderFactories.createDelegatingPasswordEncoder();
     }
 

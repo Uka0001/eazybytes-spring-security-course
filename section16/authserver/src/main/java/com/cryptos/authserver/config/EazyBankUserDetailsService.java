@@ -1,5 +1,7 @@
 package com.cryptos.authserver.config;
 
+import com.cryptos.authserver.model.Customer;
+import com.cryptos.authserver.repository.CustomerRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -19,10 +21,10 @@ public class EazyBankUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        Customer customer = customerRepository.findByUsername(username)
+        Customer customer = customerRepository.findByEmail(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + username));
         List<GrantedAuthority> authorities = customer.getAuthorities().stream()
-                .map(authority -> new SimpleGrantedAuthority(authority.getName().name())).collect(Collectors.toList());
-        return new User(customer.getEmail(), customer.getPassword(), authorities);
+                .map(authority -> new SimpleGrantedAuthority(authority.getName())).collect(Collectors.toList());
+        return new User(customer.getEmail(), customer.getPwd(), authorities);
     }
 }

@@ -49,7 +49,7 @@ public class ProjectSecurityProdConfig {
                 .requiresChannel(rcc -> rcc.anyRequest().requiresSecure()) // Only HTTPS
                 .authorizeHttpRequests((requests) -> requests
                         .requestMatchers("/myAccount").hasRole("USER")
-                        .requestMatchers("/myBalance").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers("/myBalance").hasAnyRole("VIEWBALANCE", "USER", "ADMIN")
                         .requestMatchers("/myLoans").authenticated()
                         .requestMatchers("/myCards").hasRole("USER")
                         .requestMatchers("/user").authenticated()
